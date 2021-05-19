@@ -1,0 +1,10 @@
+world: "world"
+races:
+  default:
+    abilities/walkSpeed:
+      type: float
+      value: 0.1f
+  speedRunner:
+    abilities/walkSpeed:
+      type: float
+      value: 0.2f

@@ -1,0 +1,15 @@
+name: SimpleRaceSetter
+main: com.github.trueddd.PluginMain
+version: 1.0
+commands:
+  race:
+    description: changes race attributes
+    permission: simplerace.op
+    usage: /race [player] [race]
+  races:
+    description: lists all races retreived from config
+    permission: simplerace.op
+permissions:
+  simplerace.op:
+    description: admin
+    default: op
