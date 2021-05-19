@@ -36,6 +36,7 @@ class RaceManager(private val pluginConfig: PluginConfig) {
         }
     }
 
+    // fixme: add support for List Attributes
     fun setRace(sender: CommandSender, player: Player, raceName: String): Boolean {
         val playerData = getPlayerNBT(player) ?: return false
         val attributes = pluginConfig.attributes[raceName] ?: return false
@@ -45,6 +46,7 @@ class RaceManager(private val pluginConfig: PluginConfig) {
             }
             playerData.save()
             player.saveData()
+            player.loadData()
             sender.sendMessage("Successfully changed attributes to $raceName race.")
             true
         } catch (e: Exception) {

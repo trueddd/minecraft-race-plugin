@@ -28,7 +28,6 @@ class PluginMain : JavaPlugin() {
         label: String,
         args: Array<out String>
     ): Boolean {
-        println("sender: $sender; command: $command; label: $label; args: $args")
         return when (command.label) {
             // /races
             "races" -> {
