@@ -13,9 +13,13 @@ class PluginMain : JavaPlugin() {
 
     override fun onEnable() {
         super.onEnable()
-        println("Plugin enabled")
         saveDefaultConfig()
-        pluginConfig.buildFromConfig(config)
+        try {
+            pluginConfig.buildFromConfig(config)
+            println("Race plugin successfully initialized!")
+        } catch (e: Exception) {
+            println(e.message)
+        }
     }
 
     override fun onCommand(
@@ -36,13 +40,13 @@ class PluginMain : JavaPlugin() {
                 val player = try {
                     server.getPlayer(args[0])
                 } catch (e: Exception) {
-                    sender.sendMessage("No player name was defined")
+                    sender.sendMessage("Couldn\'t find player online or you didn\'t specified nickname")
                     return false
                 }
                 val raceName = try {
                     args[1]
                 } catch (e: Exception) {
-                    sender.sendMessage("No race was defined")
+                    sender.sendMessage("Race wasn\'t defined")
                     return false
                 }
                 raceManager.setRace(sender, player, raceName)
