@@ -18,7 +18,8 @@ class PluginMain : JavaPlugin() {
             pluginConfig.buildFromConfig(config)
             println("Race plugin successfully initialized!")
         } catch (e: Exception) {
-            println(e.message)
+            println("Race plugin initialization error")
+            e.printStackTrace()
         }
     }
 

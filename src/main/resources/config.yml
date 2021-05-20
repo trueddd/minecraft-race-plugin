@@ -4,7 +4,19 @@ races:
     abilities/walkSpeed:
       type: float
       value: 0.1f
+    Attributes[Name:generic_maxHealth]/Base:
+      type: double
+      value: 20.0
+    Health:
+      type: double
+      value: 20.0
   speedRunner:
     abilities/walkSpeed:
       type: float
       value: 0.2f
+    Attributes[Name:generic_maxHealth]/Base:
+      type: double
+      value: 16.0
+    Health:
+      type: double
+      value: 16.0

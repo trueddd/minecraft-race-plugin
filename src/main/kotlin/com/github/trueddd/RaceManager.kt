@@ -9,8 +9,7 @@ import java.io.File
 
 class RaceManager(private val pluginConfig: PluginConfig) {
 
-    private fun getPlayerNBT(player: Player): NBTFile? {
-        val playerDataFile = File("${Bukkit.getWorldContainer()}/${pluginConfig.worldName}/playerdata/${player.uniqueId}.dat")
+    private fun getPlayerNBT(playerDataFile: File): NBTFile? {
         return try {
             NBTFile(playerDataFile)
         } catch (e: Exception) {
@@ -19,33 +18,62 @@ class RaceManager(private val pluginConfig: PluginConfig) {
         }
     }
 
-    private fun NBTCompound.setValueOnPath(path: String, attribute: NbtData) {
-        val nextNode = path.substringBefore('/', "")
-        if (nextNode.isEmpty()) {
-            when (attribute) {
-                is NbtData.Byte -> setByte(path, attribute.value)
-                is NbtData.Short -> setShort(path, attribute.value)
-                is NbtData.Int -> setInteger(path, attribute.value)
-                is NbtData.Long -> setLong(path, attribute.value)
-                is NbtData.Float -> setFloat(path, attribute.value)
-                is NbtData.Double -> setDouble(path, attribute.value)
-                is NbtData.String -> setString(path, attribute.value)
-            }
-        } else {
-            getCompound(nextNode).setValueOnPath(path.substringAfter('/'), attribute)
+    private val listRefRegex = Regex("(?<listName>\\w+)\\[(?<pos>\\S+)]", RegexOption.DOT_MATCHES_ALL)
+
+    private fun NBTCompound.applyValue(fieldName: String, attribute: NbtData) {
+        when (attribute) {
+            is NbtData.Byte -> setByte(fieldName, attribute.value)
+            is NbtData.Short -> setShort(fieldName, attribute.value)
+            is NbtData.Int -> setInteger(fieldName, attribute.value)
+            is NbtData.Long -> setLong(fieldName, attribute.value)
+            is NbtData.Float -> setFloat(fieldName, attribute.value)
+            is NbtData.Double -> setDouble(fieldName, attribute.value)
+            is NbtData.String -> setString(fieldName, attribute.value)
         }
     }
 
-    // fixme: add support for List Attributes
+    private fun NBTCompound.setValueOnPath(path: String, attribute: NbtData) {
+        val listRef = listRefRegex.find(path)
+        val nextNode = path.substringBefore('/', "")
+        when {
+            listRef != null -> {
+                val listName = listRef.groups["listName"]?.value ?: throw IllegalStateException("listName is null")
+                val list = getCompoundList(listName) ?: throw IllegalStateException("Couldn\'t find list with name \'${listName}\'")
+                val position = listRef.groups["pos"]?.value ?: throw IllegalStateException("position is null")
+                if (position.contains(':')) {
+                    val splitPosition = position.split(':', limit = 2)
+                    val fieldName = splitPosition.first()
+                    val fieldValue = splitPosition.last().replace('.', '_')
+                    list.firstOrNull { it.getString(fieldName).replace('.', '_') == fieldValue }
+                        ?.let{
+                            val nextPath = path.substringAfter("]/", "")
+                            if (nextPath.isBlank()) {
+                                throw IllegalStateException("Path is invalid: [${fieldName}:${fieldValue}] must have child")
+                            }
+                            it.setValueOnPath(nextPath, attribute)
+                        }
+                        ?: throw IllegalStateException("Item with \'${fieldName}\' == \'${fieldValue}\' was not found in \'${listName}\' list")
+                } else {
+                    TODO()
+                }
+            }
+            nextNode.isEmpty() -> applyValue(path, attribute)
+            else -> getCompound(nextNode).setValueOnPath(path.substringAfter('/'), attribute)
+        }
+    }
+
     fun setRace(sender: CommandSender, player: Player, raceName: String): Boolean {
-        val playerData = getPlayerNBT(player) ?: return false
+        val dataFile = File("${Bukkit.getWorldContainer()}/${pluginConfig.worldName}/playerdata/${player.uniqueId}.dat")
+        val playerData = getPlayerNBT(dataFile) ?: return false
         val attributes = pluginConfig.attributes[raceName] ?: return false
         return try {
             attributes.forEach { (name, value) ->
                 playerData.setValueOnPath(name, value)
             }
-            playerData.save()
             player.saveData()
+            dataFile.delete()
+            dataFile.createNewFile()
+            playerData.writeCompound(dataFile.outputStream())
             player.loadData()
             sender.sendMessage("Successfully changed attributes to $raceName race.")
             true
