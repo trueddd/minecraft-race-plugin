@@ -1,6 +1,9 @@
 package com.github.trueddd
 
 import org.bukkit.configuration.file.FileConfiguration
+import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.entity.Player
+import java.io.File
 
 class PluginConfig {
 
@@ -24,6 +27,27 @@ class PluginConfig {
             "string" -> NbtData.String(value)
             else -> null
         }
+    }
+
+    private fun getPlayersConfig(dataFolder: File): File {
+        val file = File(dataFolder, "/players.yml")
+        if (!file.exists()) {
+            file.createNewFile()
+        }
+        return file
+    }
+
+    fun changePlayerRace(dataFolder: File, player: Player, raceName: String) {
+        val playerDataFile = getPlayersConfig(dataFolder)
+        val playersData = YamlConfiguration.loadConfiguration(playerDataFile)
+        playersData.set(player.uniqueId.toString(), raceName)
+        playersData.save(playerDataFile)
+    }
+
+    fun checkPlayerRace(dataFolder: File, player: Player): String? {
+        val playerDataFile = getPlayersConfig(dataFolder)
+        val playersData = YamlConfiguration.loadConfiguration(playerDataFile)
+        return playersData.getString(player.uniqueId.toString())
     }
 
     fun buildFromConfig(config: FileConfiguration) {

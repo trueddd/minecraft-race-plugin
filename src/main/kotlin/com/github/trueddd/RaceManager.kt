@@ -18,7 +18,7 @@ class RaceManager(private val pluginConfig: PluginConfig) {
         }
     }
 
-    private val listRefRegex = Regex("(?<listName>\\w+)\\[(?<pos>\\S+)]", RegexOption.DOT_MATCHES_ALL)
+    private val listRefRegex = Regex("(?<listName>\\w+)\\[(?<pos>.+)]", RegexOption.DOT_MATCHES_ALL)
 
     private fun NBTCompound.applyValue(fieldName: String, attribute: NbtData) {
         when (attribute) {
@@ -40,11 +40,11 @@ class RaceManager(private val pluginConfig: PluginConfig) {
                 val listName = listRef.groups["listName"]?.value ?: throw IllegalStateException("listName is null")
                 val list = getCompoundList(listName) ?: throw IllegalStateException("Couldn\'t find list with name \'${listName}\'")
                 val position = listRef.groups["pos"]?.value ?: throw IllegalStateException("position is null")
-                if (position.contains(':')) {
-                    val splitPosition = position.split(':', limit = 2)
+                if (position.contains(":")) {
+                    val splitPosition = position.split(":", limit = 2)
                     val fieldName = splitPosition.first()
-                    val fieldValue = splitPosition.last().replace('.', '_')
-                    list.firstOrNull { it.getString(fieldName).replace('.', '_') == fieldValue }
+                    val fieldValue = splitPosition.last().replace(".", "_")
+                    list.firstOrNull { it.getString(fieldName)?.replace(".", "_") == fieldValue }
                         ?.let{
                             val nextPath = path.substringAfter("]/", "")
                             if (nextPath.isBlank()) {
@@ -58,12 +58,21 @@ class RaceManager(private val pluginConfig: PluginConfig) {
                 }
             }
             nextNode.isEmpty() -> applyValue(path, attribute)
-            else -> getCompound(nextNode).setValueOnPath(path.substringAfter('/'), attribute)
+            else -> getCompound(nextNode)
+                ?.setValueOnPath(path.substringAfter('/'), attribute)
+                ?: throw IllegalStateException("Compound $nextNode not found in $path")
         }
     }
 
-    fun setRace(sender: CommandSender, player: Player, raceName: String): Boolean {
-        val dataFile = File("${Bukkit.getWorldContainer()}/${pluginConfig.worldName}/playerdata/${player.uniqueId}.dat")
+    fun setRace(dataFolder: File, sender: CommandSender, player: Player, raceName: String): Boolean {
+        val worldSuffix = if (File("${Bukkit.getWorldContainer().absolutePath}/playerdata").exists()) {
+            ""
+        } else {
+            "/${pluginConfig.worldName}"
+        }
+        val path = "${Bukkit.getWorldContainer()}${worldSuffix}/playerdata/${player.uniqueId}.dat"
+        println("Path to player data: $path")
+        val dataFile = File(path)
         val playerData = getPlayerNBT(dataFile) ?: return false
         val attributes = pluginConfig.attributes[raceName] ?: return false
         return try {
@@ -75,6 +84,7 @@ class RaceManager(private val pluginConfig: PluginConfig) {
             dataFile.createNewFile()
             playerData.writeCompound(dataFile.outputStream())
             player.loadData()
+            pluginConfig.changePlayerRace(dataFolder, player, raceName)
             sender.sendMessage("Successfully changed attributes to $raceName race.")
             true
         } catch (e: Exception) {

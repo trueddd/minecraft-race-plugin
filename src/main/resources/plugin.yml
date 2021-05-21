@@ -9,6 +9,10 @@ commands:
   races:
     description: lists all races retreived from config
     permission: simplerace.op
+  race-check:
+    description: checks race of player
+    permission: simplerace.op
+    usage: /race-check [player]
 permissions:
   simplerace.op:
     description: admin

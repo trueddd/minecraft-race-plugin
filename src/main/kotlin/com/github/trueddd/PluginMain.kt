@@ -49,7 +49,22 @@ class PluginMain : JavaPlugin() {
                     sender.sendMessage("Race wasn\'t defined")
                     return false
                 }
-                raceManager.setRace(sender, player, raceName)
+                raceManager.setRace(dataFolder, sender, player, raceName)
+            }
+            "race-check" -> {
+                val player = try {
+                    server.getPlayer(args[0])
+                } catch (e: Exception) {
+                    sender.sendMessage("Couldn\'t find player online or you didn\'t specified nickname")
+                    return false
+                }
+                val raceName = pluginConfig.checkPlayerRace(dataFolder, player)
+                if (raceName == null) {
+                    sender.sendMessage("Race of ${player.name} not found")
+                } else {
+                    sender.sendMessage("Race of ${player.name} is set to \"${raceName}\"")
+                }
+                return true
             }
             else -> return super.onCommand(sender, command, label, args)
         }
